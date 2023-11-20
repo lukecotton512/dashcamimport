@@ -5,8 +5,6 @@
 # A script for importing dashcam footage from a SD card.
 
 # Imports.
-import signal
-import os
 import sys
 import re
 import shutil
