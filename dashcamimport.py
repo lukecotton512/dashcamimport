@@ -19,10 +19,6 @@ SD_CARD_MOUNT_PATH = "/mnt/sdcardmnt"
 
 # Entry point for script.
 def main():
-    # Setup response to signals.
-    signal.signal(signal.SIGHUP, handleSignal)
-    signal.signal(signal.SIGTERM, handleSignal)
-
     # Check arguments.
     if len(sys.argv) != 3:
         print(f"usage: {sys.argv[0]} <sdcard> <importfolder>")
@@ -73,11 +69,6 @@ def copyFile(file: Path, importFolder: Path):
             print("Done!")
     else:
         print(f"File {file} does not match the date pattern. Ignoring.")
-    
-# Handle a signal.
-def handleSignal():
-    print("Signal received")
-    exit()
 
 # Call main if loaded from command line.
 if __name__ == "__main__":
