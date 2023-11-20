@@ -5,9 +5,12 @@
 # A script for importing dashcam footage from a SD card.
 
 # Imports.
-import pyudev
 import signal
 import os
+import sys
+import re
+import shutil
+from datetime import datetime
 from pathlib import Path
 
 # Constants.
@@ -20,37 +23,56 @@ def main():
     signal.signal(signal.SIGHUP, handleSignal)
     signal.signal(signal.SIGTERM, handleSignal)
 
-    # Setup monitor to watch for dashcam SD card being mounted.
-    context = pyudev.Context()
-    monitor = pyudev.Monitor.from_netlink(context)
-    monitor.filter_by(subsystem='block', device_type='partition')
-
-    # Monitor for the SD card.
-    for device in iter(monitor.poll, None):
-        if device.action == 'add':
-            devicelabel = device.get('ID_FS_LABEL', 'unknown')
-            print("{0}: {1}".format(device.device_node, devicelabel))
-            if devicelabel == SD_CARD_NAME:
-                mountSDCard(device.device_node)
-
-# Mount our SD card.
-def mountSDCard(devnode):
-    print("Mounting SD Card: {0}".format(devnode))
+    # Check arguments.
+    if len(sys.argv) != 3:
+        print(f"usage: {sys.argv[0]} <sdcard> <importfolder>")
+        return
     
-    # Check to see if mount point exists.
-    mountPath = Path(SD_CARD_MOUNT_PATH)
-    if mountPath.exists():
-        # Check to see if we are not already mounted.
-        if mountPath.is_mount():
-            # We are already mounted, so get out of here
-            return
+    # Our arguments.
+    sdcard = sys.argv[1]
+    importFolder = sys.argv[2]
+
+    # Do SD card copy.
+    doImport(sdcard, importFolder)
+
+# Import footage from SD card.
+def doImport(importSrc, importFolder):
+    # Get a list of all files from the SD card.
+    print("Starting import from SD card.")
+    importPath = Path(importSrc)
+    destPath = Path(importFolder)
+    if destPath.exists():
+        protectedPath = importPath / 'DCIM' / 'PROTECTED'
+        if protectedPath.exists() and protectedPath.is_dir():
+            for path in protectedPath.glob('*.[Mm][Pp]4'):
+                copyFile(path, destPath)
+        else:
+            print(f"Import directory '{importSrc}' is invalid!")
     else:
-        # Create the mount point.
-        os.mkdir(SD_CARD_MOUNT_PATH)
-    
-    # Mount the SD card.
-    os.system("mount {0} {1}".format(devnode, SD_CARD_MOUNT_PATH))
+        print(f"Destination directory '{importFolder} does not exist!")
 
+# For an item, copy it into the import folder,
+# Creating a datestamped folder.
+def copyFile(file: Path, importFolder: Path):
+    # Parse the date of the file name.
+    filename = file.name
+    match = re.search(r"\d{6}_\d{6}", filename)
+    datestr = match.group()
+    if datestr is not None:
+        # Parse date to get folder
+        timestamp = datetime.strptime(datestr, "%y%m%d_%H%M%S")
+        foldername = timestamp.strftime("%Y-%m-%d")
+        print(f"Processing {file.name} ({foldername}).")
+        folderpath = importFolder / foldername
+        folderpath.mkdir(exist_ok=True)
+        try:
+            shutil.copy(str(file), str(folderpath))
+        except IOError as ex:
+            print(f"Error copying {file.name}: {ex.strerror}")
+        else:
+            print("Done!")
+    else:
+        print(f"File {file} does not match the date pattern. Ignoring.")
     
 # Handle a signal.
 def handleSignal():
