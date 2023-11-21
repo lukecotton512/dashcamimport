@@ -11,10 +11,6 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 
-# Constants.
-SD_CARD_NAME = "NEXTBASE"
-SD_CARD_MOUNT_PATH = "/mnt/sdcardmnt"
-
 # Entry point for script.
 def main():
     # Check arguments.
