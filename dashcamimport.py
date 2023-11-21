@@ -2,7 +2,7 @@
 
 # dashcamimport.py
 # Luke Cotton
-# A script for importing dashcam footage from a SD card.
+# A script for importing dashcam footage from somewhere (like a SD card).
 
 # Imports.
 import sys
