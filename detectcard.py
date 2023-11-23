@@ -69,7 +69,7 @@ def mountSDCard(devnode, mountPoint, fstype=''):
             return
     else:
         # Create the mount point.
-        os.mkdir(mountPoint)
+        mountPath.mkdir()
     
     # Mount the SD card.
     typearg = ""
