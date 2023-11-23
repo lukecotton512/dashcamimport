@@ -9,6 +9,7 @@ import pyudev
 import signal
 import os
 import sys
+import logging
 from pathlib import Path
 
 import dashcamimport
@@ -17,9 +18,13 @@ import dashcamimport
 SD_CARD_NAME = "NEXTBASE"
 SD_CARD_MOUNT_PATH = "/mnt/dashcam"
 SD_CARD_SUB_PATH = "DCIM/PROTECTED"
+LOG_FILE_PATH = "detectcard.log"
 
 # Entry point for script.
 def main():
+    # Setup logging.
+    logging.basicConfig(filename=LOG_FILE_PATH, encoding='utf-8', level=logging.DEBUG)
+
     # Get path to import directory and exit if we don't have it.
     if len(sys.argv) != 2:
         print(f"Usage: {sys.argv[0]} <import directory>")
@@ -42,7 +47,7 @@ def main():
         if device.action == 'add':
             devicelabel = device.get('ID_FS_LABEL', 'unknown')
             devicefstype = device.get('ID_FS_TYPE', '')
-            print(f"{device.device_node}: {devicelabel}")
+            logging.info(f"{device.device_node}: {devicelabel}")
             if devicelabel == SD_CARD_NAME:
                 mountStatus = mountSDCard(device.device_node, SD_CARD_MOUNT_PATH, devicefstype)
                 if mountStatus == 0:
@@ -53,7 +58,7 @@ def main():
 
 # Mount our SD card.
 def mountSDCard(devnode, mountPoint, fstype=''):
-    print(f"Mounting SD Card: {devnode}")
+    logging.info(f"Mounting SD Card: {devnode}")
     
     # Check to see if mount point exists.
     mountPath = Path(mountPoint)
@@ -74,9 +79,9 @@ def mountSDCard(devnode, mountPoint, fstype=''):
     status = os.system(f"mount{typearg} {devnode} {mountPoint}")
 
     if status == 0:
-        print(f"Mounted {devnode} at {mountPoint}")
+        logging.info(f"Mounted {devnode} at {mountPoint}")
     else:
-        print(f"Failed to mount {devnode} at {mountPoint}")
+        logging.error(f"Failed to mount {devnode} at {mountPoint}")
 
     return status
 
@@ -90,9 +95,9 @@ def unmountSDCard(mountPath):
 
         # Check to make sure we were successful or not and print a corresponding message.
         if status == 0:
-            print(f"Unmounted SD card {mountPath} successfully.")
+            logging.info(f"Unmounted SD card {mountPath} successfully.")
         else:
-            print(f"Failed to unmount SD card {mountPath}.")
+            logging.error(f"Failed to unmount SD card {mountPath}.")
 
     
 # Handle a signal.
