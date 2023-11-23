@@ -26,13 +26,13 @@ def main():
     doImport(sdcard, importFolder)
 
 # Import footage from SD card.
-def doImport(importSrc, importFolder):
+def doImport(importSrc, importFolder, subpath = ""):
     # Get a list of all files from the SD card.
     print("Starting import from SD card.")
     importPath = Path(importSrc)
     destPath = Path(importFolder)
     if destPath.exists():
-        protectedPath = importPath / 'DCIM' / 'PROTECTED'
+        protectedPath = importPath / subpath
         if protectedPath.exists() and protectedPath.is_dir():
             for path in protectedPath.glob('*.[Mm][Pp]4'):
                 copyFile(path, destPath)

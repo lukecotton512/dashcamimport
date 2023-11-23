@@ -16,6 +16,7 @@ import dashcamimport
 # Constants.
 SD_CARD_NAME = "NEXTBASE"
 SD_CARD_MOUNT_PATH = "/mnt/dashcam"
+SD_CARD_SUB_PATH = "DCIM/PROTECTED"
 
 # Entry point for script.
 def main():
@@ -45,7 +46,7 @@ def main():
             if devicelabel == SD_CARD_NAME:
                 mountStatus = mountSDCard(device.device_node, SD_CARD_MOUNT_PATH, devicefstype)
                 if mountStatus == 0:
-                    dashcamimport.doImport(SD_CARD_MOUNT_PATH, importDir)
+                    dashcamimport.doImport(SD_CARD_MOUNT_PATH, importDir, SD_CARD_SUB_PATH)
                     unmountSDCard(SD_CARD_MOUNT_PATH)
                 else:
                     exit()
