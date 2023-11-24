@@ -8,11 +8,15 @@
 import sys
 import re
 import shutil
+import logging
 from datetime import datetime
 from pathlib import Path
 
 # Entry point for script.
 def main():
+    # Setup logging.
+    logging.basicConfig(format='%(message)s', encoding='utf-8', level=logging.DEBUG)
+
     # Check arguments.
     if len(sys.argv) != 3:
         print(f"usage: {sys.argv[0]} <sdcard> <importfolder>")
@@ -28,7 +32,7 @@ def main():
 # Import footage from SD card.
 def doImport(importSrc, importFolder, subpath = ""):
     # Get a list of all files from the SD card.
-    print("Starting import from SD card.")
+    logging.info("Starting import from SD card.")
     importPath = Path(importSrc)
     destPath = Path(importFolder)
     if destPath.exists():
@@ -37,9 +41,9 @@ def doImport(importSrc, importFolder, subpath = ""):
             for path in protectedPath.glob('*.[Mm][Pp]4'):
                 copyFile(path, destPath)
         else:
-            print(f"Import directory '{importSrc}' is invalid!")
+            logging.error(f"Import directory '{importSrc}' is invalid!")
     else:
-        print(f"Destination directory '{importFolder} does not exist!")
+        logging.error(f"Destination directory '{importFolder} does not exist!")
 
 # For an item, copy it into the import folder,
 # Creating a datestamped folder.
@@ -52,17 +56,17 @@ def copyFile(file: Path, importFolder: Path):
         # Parse date to get folder
         timestamp = datetime.strptime(datestr, "%y%m%d_%H%M%S")
         foldername = timestamp.strftime("%Y-%m-%d")
-        print(f"Processing {file.name} ({foldername}).")
+        logging.info(f"Processing {file.name} ({foldername}).")
         folderpath = importFolder / foldername
         folderpath.mkdir(exist_ok=True)
         try:
             shutil.copy(str(file), str(folderpath))
         except IOError as ex:
-            print(f"Error copying {file.name}: {ex.strerror}")
+            logging.error(f"Error copying {file.name}: {ex.strerror}")
         else:
-            print("Done!")
+            logging.info("Done!")
     else:
-        print(f"File {file} does not match the date pattern. Ignoring.")
+        logging.error(f"File {file} does not match the date pattern. Ignoring.")
 
 # Call main if loaded from command line.
 if __name__ == "__main__":

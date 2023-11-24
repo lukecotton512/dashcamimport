@@ -7,6 +7,7 @@
 # Imports.
 import pyudev
 import signal
+import subprocess
 import os
 import sys
 import logging
@@ -46,10 +47,9 @@ def main():
     for device in iter(monitor.poll, None):
         if device.action == 'add':
             devicelabel = device.get('ID_FS_LABEL', 'unknown')
-            devicefstype = device.get('ID_FS_TYPE', '')
             logging.info(f"{device.device_node}: {devicelabel}")
             if devicelabel == SD_CARD_NAME:
-                mountStatus = mountSDCard(device.device_node, SD_CARD_MOUNT_PATH, devicefstype)
+                mountStatus = mountSDCard(device.device_node, SD_CARD_MOUNT_PATH)
                 if mountStatus == 0:
                     dashcamimport.doImport(SD_CARD_MOUNT_PATH, importDir, SD_CARD_SUB_PATH)
                     unmountSDCard(SD_CARD_MOUNT_PATH)
@@ -57,7 +57,7 @@ def main():
                     exit()
 
 # Mount our SD card.
-def mountSDCard(devnode, mountPoint, fstype=''):
+def mountSDCard(devnode, mountPoint):
     logging.info(f"Mounting SD Card: {devnode}")
     
     # Check to see if mount point exists.
@@ -71,19 +71,23 @@ def mountSDCard(devnode, mountPoint, fstype=''):
         # Create the mount point.
         mountPath.mkdir()
     
+    # Mount command depends on whether or not we are root.
+    # If we are not root, then just pass the dev node.
+    # Otherwise, pass the mount point.
     # Mount the SD card.
-    typearg = ""
-    if fstype != "":
-        typearg = f" -t {fstype}"
+    if os.getuid() == 0:
+        status = subprocess.run(["mount", devnode, mountPoint], capture_output=True)
+    else:
+        status = subprocess.run(["mount", devnode], capture_output=True)
 
-    status = os.system(f"mount{typearg} {devnode} {mountPoint}")
-
-    if status == 0:
+    if status.returncode == 0:
         logging.info(f"Mounted {devnode} at {mountPoint}")
     else:
+        err = str(status.stderr, 'utf-8')
+        logging.error(err)
         logging.error(f"Failed to mount {devnode} at {mountPoint}")
 
-    return status
+    return status.returncode
 
 # Unmount our SD card.
 def unmountSDCard(mountPath):
@@ -91,12 +95,14 @@ def unmountSDCard(mountPath):
     mountPath = Path(mountPath)
     if mountPath.exists() and mountPath.is_mount():
         # Unmount the card.
-        status = os.system(f"umount {mountPath}")
+        status = subprocess.run(["umount", mountPath], capture_output=True)
 
         # Check to make sure we were successful or not and print a corresponding message.
-        if status == 0:
+        if status.returncode == 0:
             logging.info(f"Unmounted SD card {mountPath} successfully.")
         else:
+            err = str(status.stderr, 'utf-8')
+            logging.error(err)
             logging.error(f"Failed to unmount SD card {mountPath}.")
 
     
