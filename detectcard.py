@@ -11,31 +11,40 @@ import subprocess
 import os
 import sys
 import logging
+import configparser
 from pathlib import Path
 
 import dashcamimport
 
-# Constants.
-SD_CARD_NAME = "NEXTBASE"
-SD_CARD_MOUNT_PATH = "/mnt/dashcam"
-SD_CARD_SUB_PATH = "DCIM/PROTECTED"
-LOG_FILE_PATH = "detectcard.log"
+# Our logger.
 LOGGER = logging.getLogger(__name__)
 
 # Entry point for script.
 def main():
-    # Setup logging.
-    logging.basicConfig(encoding='utf-8', level=logging.DEBUG, handlers=[
-        logging.FileHandler(LOG_FILE_PATH),
-        logging.StreamHandler()
-    ])
-
     # Get path to import directory and exit if we don't have it.
     if len(sys.argv) != 2:
-        print(f"Usage: {sys.argv[0]} <import directory>")
+        print(f"Usage: {sys.argv[0]} <configfile>")
         exit(1)
-    
-    importDir = sys.argv[1]
+
+    # Read everything from the config file.
+    configName = sys.argv[1]
+
+    configfile = configparser.ConfigParser()
+    configfile.read(configName)
+
+    config = configfile['detectcard']
+
+    cardName = config['sdcardname']
+    importDir = config['importdir']
+    subPath = config['sdcardsubpath']
+    mountPath = config['sdcardmountpath']
+    logFilePath = config['logfilepath']
+
+    # Setup logging.
+    logging.basicConfig(encoding='utf-8', level=logging.DEBUG, handlers=[
+        logging.FileHandler(logFilePath),
+        logging.StreamHandler()
+    ])
 
     # Setup response to signals.
     signal.signal(signal.SIGHUP, handleSignal)
@@ -52,11 +61,11 @@ def main():
         if device.action == 'add':
             devicelabel = device.get('ID_FS_LABEL', 'unknown')
             LOGGER.info(f"{device.device_node}: {devicelabel}")
-            if devicelabel == SD_CARD_NAME:
-                mountStatus = mountSDCard(device.device_node, SD_CARD_MOUNT_PATH)
+            if devicelabel == cardName:
+                mountStatus = mountSDCard(device.device_node, mountPath)
                 if mountStatus == 0:
-                    dashcamimport.doImport(SD_CARD_MOUNT_PATH, importDir, SD_CARD_SUB_PATH)
-                    unmountSDCard(SD_CARD_MOUNT_PATH)
+                    dashcamimport.doImport(mountPath, importDir, subPath)
+                    unmountSDCard(mountPath)
                 else:
                     exit()
 
