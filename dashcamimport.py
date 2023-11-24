@@ -12,6 +12,9 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
+# Our logger.
+LOGGER = logging.getLogger(__name__)
+
 # Entry point for script.
 def main():
     # Setup logging.
@@ -32,7 +35,7 @@ def main():
 # Import footage from SD card.
 def doImport(importSrc, importFolder, subpath = ""):
     # Get a list of all files from the SD card.
-    logging.info("Starting import from SD card.")
+    LOGGER.info("Starting import from SD card.")
     importPath = Path(importSrc)
     destPath = Path(importFolder)
     if destPath.exists():
@@ -41,9 +44,9 @@ def doImport(importSrc, importFolder, subpath = ""):
             for path in protectedPath.glob('*.[Mm][Pp]4'):
                 copyFile(path, destPath)
         else:
-            logging.error(f"Import directory '{importSrc}' is invalid!")
+            LOGGER.error(f"Import directory '{importSrc}' is invalid!")
     else:
-        logging.error(f"Destination directory '{importFolder} does not exist!")
+        LOGGER.error(f"Destination directory '{importFolder} does not exist!")
 
 # For an item, copy it into the import folder,
 # Creating a datestamped folder.
@@ -56,17 +59,17 @@ def copyFile(file: Path, importFolder: Path):
         # Parse date to get folder
         timestamp = datetime.strptime(datestr, "%y%m%d_%H%M%S")
         foldername = timestamp.strftime("%Y-%m-%d")
-        logging.info(f"Processing {file.name} ({foldername}).")
+        LOGGER.info(f"Processing {file.name} ({foldername}).")
         folderpath = importFolder / foldername
         folderpath.mkdir(exist_ok=True)
         try:
             shutil.copy(str(file), str(folderpath))
         except IOError as ex:
-            logging.error(f"Error copying {file.name}: {ex.strerror}")
+            LOGGER.error(f"Error copying {file.name}: {ex.strerror}")
         else:
-            logging.info("Done!")
+            LOGGER.info("Done!")
     else:
-        logging.error(f"File {file} does not match the date pattern. Ignoring.")
+        LOGGER.error(f"File {file} does not match the date pattern. Ignoring.")
 
 # Call main if loaded from command line.
 if __name__ == "__main__":

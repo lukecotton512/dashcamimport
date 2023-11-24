@@ -20,11 +20,15 @@ SD_CARD_NAME = "NEXTBASE"
 SD_CARD_MOUNT_PATH = "/mnt/dashcam"
 SD_CARD_SUB_PATH = "DCIM/PROTECTED"
 LOG_FILE_PATH = "detectcard.log"
+LOGGER = logging.getLogger(__name__)
 
 # Entry point for script.
 def main():
     # Setup logging.
-    logging.basicConfig(filename=LOG_FILE_PATH, encoding='utf-8', level=logging.DEBUG)
+    logging.basicConfig(encoding='utf-8', level=logging.DEBUG, handlers=[
+        logging.FileHandler(LOG_FILE_PATH),
+        logging.StreamHandler()
+    ])
 
     # Get path to import directory and exit if we don't have it.
     if len(sys.argv) != 2:
@@ -47,7 +51,7 @@ def main():
     for device in iter(monitor.poll, None):
         if device.action == 'add':
             devicelabel = device.get('ID_FS_LABEL', 'unknown')
-            logging.info(f"{device.device_node}: {devicelabel}")
+            LOGGER.info(f"{device.device_node}: {devicelabel}")
             if devicelabel == SD_CARD_NAME:
                 mountStatus = mountSDCard(device.device_node, SD_CARD_MOUNT_PATH)
                 if mountStatus == 0:
@@ -58,7 +62,7 @@ def main():
 
 # Mount our SD card.
 def mountSDCard(devnode, mountPoint):
-    logging.info(f"Mounting SD Card: {devnode}")
+    LOGGER.info(f"Mounting SD Card: {devnode}")
     
     # Check to see if mount point exists.
     mountPath = Path(mountPoint)
@@ -81,11 +85,11 @@ def mountSDCard(devnode, mountPoint):
         status = subprocess.run(["mount", devnode], capture_output=True)
 
     if status.returncode == 0:
-        logging.info(f"Mounted {devnode} at {mountPoint}")
+        LOGGER.info(f"Mounted {devnode} at {mountPoint}")
     else:
         err = str(status.stderr, 'utf-8')
-        logging.error(err)
-        logging.error(f"Failed to mount {devnode} at {mountPoint}")
+        LOGGER.error(err)
+        LOGGER.error(f"Failed to mount {devnode} at {mountPoint}")
 
     return status.returncode
 
@@ -99,16 +103,16 @@ def unmountSDCard(mountPath):
 
         # Check to make sure we were successful or not and print a corresponding message.
         if status.returncode == 0:
-            logging.info(f"Unmounted SD card {mountPath} successfully.")
+            LOGGER.info(f"Unmounted SD card {mountPath} successfully.")
         else:
             err = str(status.stderr, 'utf-8')
-            logging.error(err)
-            logging.error(f"Failed to unmount SD card {mountPath}.")
+            LOGGER.error(err)
+            LOGGER.error(f"Failed to unmount SD card {mountPath}.")
 
     
 # Handle a signal.
 def handleSignal(sig, frame):
-    print("Signal received")
+    LOGGER.warning("Signal received")
     exit()
 
 # Call main if loaded from command line.
